@@ -1,0 +1,5 @@
+
+# ignore the contents of the output folder
+OUTPUT_Generating_NEST_Data/*
+
+
