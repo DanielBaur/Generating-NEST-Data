@@ -110,8 +110,8 @@ def nest_output_tuple_to_np_array(arrayname, arraypath, arraytuplelist):
         ("interaction_type", np.unicode_, 16),
         ("energy_deposition", np.float64),
         ("field_strength", np.float64),
-        ("number_of_photons", np.uint16),
-        ("number_of_electrons", np.uint16),
+        ("number_of_photons", np.uint64),
+        ("number_of_electrons", np.uint64),
     ])
     nest_output_array = np.array(arraytuplelist, store_dtype)
     np.save(arraypath +arrayname +".npy", nest_output_array)
@@ -182,7 +182,11 @@ def run_NEST(runNEST, runlist, runname, nestp, outputp, saveasonearray):
             for i in range(len(arraystringlist)):
                 arraylist.append(np.load(outputp +runname +"/" +arraystringlist[i]))
             concatenated_array = np.concatenate(arraylist)
-            subprocess.call("rm -r " +outputp +runname +"/*", shell=True)
+            #subprocess.call("rm -r " +outputp +runname +"/*", shell=True)
+            for i in range(len(arraystringlist)):
+                subprocess.call("rm " +outputp +runname +"/" +arraystringlist[i], shell=True)
+                subprocess.call("rm " +outputp +runname +"/" +arraystringlist[i][:-4] +".txt", shell=True)
+                #arraylist.append(np.load(outputp +runname +"/" +arraystringlist[i]))
             np.save(outputp +runname +"/" +runname +".npy", concatenated_array)
             
         # end of main program
@@ -193,8 +197,17 @@ def run_NEST(runNEST, runlist, runname, nestp, outputp, saveasonearray):
 
 
 # This function is used to calculate the root mean square (RMS) of a list of floats
-def qmean(num):
-    return math.sqrt(sum(n*n for n in num)/len(num))
+def qmean(data):
+    ld = len(data)
+    a = np.array(np.multiply(data,data), dtype=np.float128)
+    la = len(a)
+    if la != ld:
+        print(f"len(data) = {l}")
+        print(f"len(a) = {len(a)}")
+    s = np.float128(np.sum(la))
+    #for i in range(la):
+    #    s = s + data[i]*data[i]
+    return np.float64(np.sqrt(s/la))
 
 
 # This function is used to disjunctively seperate an sfndarray into multiple subsets that all share interaction_type, energy_deposition and field_strength
@@ -225,13 +238,13 @@ def gen_summarized_ndarray(outputfolder, runname):
     
     ### checking the available files
     folder = outputfolder +runname +"/"
-    files = [name for name in os.listdir(folder +".") if (os.path.isfile(folder +name) and "__PROCESSED" not in folder+name)]
+    files = [name for name in os.listdir(folder +".") if (os.path.isfile(folder +name) and "__PROCESSED" not in folder+name and ".npy" in folder+name)]
     number_of_files = len(files)
 
     ### retrieving the subdatasets
     # only one file (that is probably already summarized)
     if number_of_files == 1:
-        print(f"Processing Conatenated File: {runname}.npy\n")
+        print(f"Processing Concatenated File: {runname}.npy\n")
         mask_list, subdataset_list = gen_subdatasets_from_gnampfino_data(data=np.load(folder +files[0]))
         print(f"Subsets (interaction_type, energy_deposition, field_strength):")
         for i in range(len(subdataset_list)):
@@ -258,14 +271,14 @@ def gen_summarized_ndarray(outputfolder, runname):
         # defining the dtype
         #print(subdataset_list[i].dtype.names)
         store_dtype = np.dtype([
-            ("number_of_events", np.uint16),
+            ("number_of_events", np.uint64),
             ("interaction_type", np.unicode_, 16),
             ("energy_deposition", np.float64),
             ("field_strength", np.float64),
-            ("mean_number_of_photons", np.uint16),
+            ("mean_number_of_photons", np.float64),
             ("rms_number_of_photons", np.float64),
             ("mean_number_of_photons_sigma", np.float64),
-            ("mean_number_of_electrons", np.uint16),
+            ("mean_number_of_electrons", np.float64),
             ("rms_number_of_electrons", np.float64),
             ("mean_number_of_electrons_sigma", np.float64),
         ])
@@ -293,10 +306,11 @@ def gen_summarized_ndarray(outputfolder, runname):
             rms_number_of_electrons,
             mean_number_of_electrons_sigma
         ))
-        # generating the processed ndarray
-        processed_ndarray = np.array(processed_ndarray_tuplelist, store_dtype)
-        np.save(folder +runname +"__PROCESSED" +".npy", processed_ndarray)
-        print(f"Saving Summarized File: {runname}__PROCESSED.npy\n")
+
+    ### generating the processed ndarray
+    processed_ndarray = np.array(processed_ndarray_tuplelist, store_dtype)
+    np.save(folder +runname +"__PROCESSED" +".npy", processed_ndarray)
+    print(f"Saving Summarized File: {runname}__PROCESSED.npy\n")
 
     print(f"#############################################################")
     print(f"Finished: Generating Processed ndarray")
