@@ -199,15 +199,12 @@ def run_NEST(runNEST, runlist, runname, nestp, outputp, saveasonearray):
 # This function is used to calculate the root mean square (RMS) of a list of floats
 def qmean(data):
     ld = len(data)
-    a = np.array(np.multiply(data,data), dtype=np.float128)
-    la = len(a)
-    if la != ld:
-        print(f"len(data) = {l}")
-        print(f"len(a) = {len(a)}")
-    s = np.float128(np.sum(la))
-    #for i in range(la):
-    #    s = s + data[i]*data[i]
-    return np.float64(np.sqrt(s/la))
+    s = np.float128(0)
+    for i in range(ld):
+        s = np.float128(s +np.multiply(data[i],data[i]), dtype=np.float128)
+        #print(f"multiplication: {i}")
+        #print(f"{data[i]}*{data[i]}={data[i]*data[i]} ---> s={s}\n")
+    return np.float128(np.sqrt(s/ld))
 
 
 # This function is used to disjunctively seperate an sfndarray into multiple subsets that all share interaction_type, energy_deposition and field_strength
@@ -278,9 +275,9 @@ def gen_summarized_ndarray(outputfolder, runname):
             ("mean_number_of_photons", np.float64),
             ("rms_number_of_photons", np.float64),
             ("mean_number_of_photons_sigma", np.float64),
-            ("mean_number_of_electrons", np.float64),
+            ("mean_number_of_electrons", np.float128),
             ("rms_number_of_electrons", np.float64),
-            ("mean_number_of_electrons_sigma", np.float64),
+            ("mean_number_of_electrons_sigma", np.float128),
         ])
         # calculations
         number_of_events = len(subdataset_list[i])
